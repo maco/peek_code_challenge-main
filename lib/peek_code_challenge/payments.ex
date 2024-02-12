@@ -67,22 +67,38 @@ defmodule PeekCodeChallenge.Payments do
             |> Payment.changeset(%{amount: amount, order_id: order.id})
             |> Repo.insert!()
 
-          case GoblinPay.capture_payment(payment) do
-            {:ok, refid} ->
-              payment =
-                payment
-                |> Payment.changeset(%{processor_refid: refid})
-                |> Repo.update!()
-
-              {:ok, payment}
-
-            {:error, :network_error} ->
-              {:error, :network_error}
-          end
+          attempt_payment(payment, 5)
         end
 
       {:error, :not_found} ->
         {:error, :not_found}
+    end
+  end
+
+  defp attempt_payment(_payment, 0), do:
+    {:error, :network_error}
+
+  defp attempt_payment(payment, retries) do
+    case attempt_payment(payment) do
+      {:ok, payment} ->
+        {:ok, payment}
+      {:error, :network_error} ->
+        attempt_payment(payment, retries - 1)
+    end
+  end
+
+  defp attempt_payment(payment) do
+    case GoblinPay.capture_payment(payment) do
+      {:ok, refid} ->
+        payment =
+          payment
+          |> Payment.changeset(%{processor_refid: refid})
+          |> Repo.update!()
+
+        {:ok, payment}
+
+      {:error, :network_error} ->
+        {:error, :network_error}
     end
   end
 
