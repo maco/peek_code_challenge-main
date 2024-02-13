@@ -67,6 +67,14 @@ defmodule PeekCodeChallenge.OrdersTest do
       assert Orders.list_orders() == [order]
     end
 
+    test "pending_orders/0 returns all pending orders" do
+      order_fixture(%{status: :pending})
+      order_fixture(%{status: :canceled})
+      order_fixture(%{status: :completed})
+      order_fixture(%{status: :pending})
+      assert 2 == length(Orders.pending_orders())
+    end
+
     test "get_order!/1 returns the order with given id" do
       order = order_fixture()
       assert Orders.get_order!(order.id) == order
@@ -114,6 +122,20 @@ defmodule PeekCodeChallenge.OrdersTest do
       order = order_fixture()
       assert {:error, %Ecto.Changeset{}} = Orders.update_order(order, @invalid_attrs)
       assert order == Orders.get_order!(order.id)
+    end
+
+    test "complete_order/1 marks order complete" do
+      order = order_fixture()
+      Orders.complete_order(order)
+
+      {:ok, %Order{status: :completed}} = Orders.get_order(order.id)
+    end
+
+    test "cancel_order/1 marks order canceled" do
+      order = order_fixture()
+      Orders.cancel_order(order)
+
+      {:ok, %Order{status: :canceled}} = Orders.get_order(order.id)
     end
 
     test "delete_order/1 deletes the order" do

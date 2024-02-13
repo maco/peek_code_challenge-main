@@ -9,6 +9,7 @@ defmodule PeekCodeChallenge.Orders.Order do
     belongs_to :customer, Customer
     has_many :payments, Payment
     field :amount, Money.Ecto.Map.Type
+    field :status, Ecto.Enum, values: [:pending, :completed, :canceled], default: :pending
 
     timestamps(type: :utc_datetime_usec)
   end
@@ -16,7 +17,7 @@ defmodule PeekCodeChallenge.Orders.Order do
   @doc false
   def changeset(order, attrs) do
     order
-    |> cast(attrs, [:amount, :customer_id])
+    |> cast(attrs, [:amount, :customer_id, :status])
     |> validate_required([:amount, :customer_id])
   end
 end

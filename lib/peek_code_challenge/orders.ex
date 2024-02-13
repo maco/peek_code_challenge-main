@@ -202,4 +202,46 @@ defmodule PeekCodeChallenge.Orders do
   def delete_order(%Order{} = order) do
     Repo.delete(order)
   end
+
+  @doc """
+  Marks an order completed
+
+  ## Examples
+
+      iex> complete_order(order)
+      {:ok, %Order{status:}}
+  """
+  def complete_order(%Order{} = order) do
+    order
+    |> Order.changeset(%{status: :completed})
+    |> Repo.update()
+  end
+
+  @doc """
+  Marks an order canceled
+
+  ## Examples
+
+      iex> cancel_order(order)
+      {:ok, %Order{status:}}
+  """
+  def cancel_order(%Order{} = order) do
+    order
+    |> Order.changeset(%{status: :canceled})
+    |> Repo.update()
+  end
+
+  @doc """
+  Lists pending orders
+
+  ## Examples
+
+      iex> pending_orders()
+      [%Order{status: :pending}, ...]
+  """
+  def pending_orders do
+    Order
+    |> where([o], o.status == :pending)
+    |> Repo.all()
+  end
 end
