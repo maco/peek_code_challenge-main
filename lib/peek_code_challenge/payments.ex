@@ -130,15 +130,21 @@ defmodule PeekCodeChallenge.Payments do
       {:ok, %Order{}}
   """
   def create_order_and_pay(order_attrs) do
-    case Orders.create_order(order_attrs) do
-      {:ok, order} ->
-        apply_payment_to_order(order.id, order.amount, UUID.uuid4())
+    Repo.transaction(fn ->
+      case Orders.create_order(order_attrs) do
+        {:ok, order} ->
+          case __MODULE__.apply_payment_to_order(order.id, order.amount, UUID.uuid4()) do
+            {:ok, _payment} ->
+              order
 
-        {:ok, order}
+            {:error, e} ->
+              Repo.rollback(e)
+          end
 
-      {:error, changeset} ->
-        {:error, changeset}
-    end
+        {:error, changeset} ->
+          Repo.rollback(changeset)
+      end
+    end)
   end
 
   @doc """

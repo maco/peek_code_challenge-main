@@ -1,6 +1,8 @@
 defmodule PeekCodeChallenge.PaymentsTest do
   use PeekCodeChallenge.DataCase
 
+  import Mock
+
   alias PeekCodeChallenge.Payments
 
   describe "payments" do
@@ -94,6 +96,20 @@ defmodule PeekCodeChallenge.PaymentsTest do
 
     test "create_order_and_pay/1 fails if the attrs are invalid" do
       assert {:error, %Ecto.Changeset{}} = Payments.create_order_and_pay(%{amount: nil})
+    end
+
+    test "create_order_and_pay/1 doesn't create order if payment fails" do
+      with_mock Payments,
+        apply_payment_to_order: fn _, _, _ -> {:error, %Ecto.Changeset{}} end,
+        create_order_and_pay: fn args -> passthrough([args]) end do
+        customer = customer_fixture()
+
+        assert {:error, %Ecto.Changeset{}} =
+                 PeekCodeChallenge.Payments.create_order_and_pay(%{
+                   amount: ~M[85.50]USD,
+                   customer_id: customer.id
+                 })
+      end
     end
 
     test "get_payment!/1 returns the payment with given id" do
