@@ -21,10 +21,11 @@ defmodule PeekCodeChallenge.PaymentsTest do
       assert Payments.list_payments_for_order(order2.id) == [payment3]
     end
 
-    test "apply_payment_to_order/2 applies a payment to an order" do
+    test "apply_payment_to_order/3 applies a payment to an order" do
       order = order_fixture()
 
-      assert {:ok, payment} = Payments.apply_payment_to_order(order.id, order.amount)
+      assert {:ok, payment} =
+               Payments.apply_payment_to_order(order.id, order.amount, UUID.uuid4())
 
       assert payment.amount == order.amount
       assert payment.order_id == order.id
@@ -33,15 +34,32 @@ defmodule PeekCodeChallenge.PaymentsTest do
       assert is_binary(payment.processor_refid)
     end
 
-    test "apply_payment_to_order/2 does not apply a payment to a non-existing order" do
-      assert {:error, :not_found} = Payments.apply_payment_to_order(1, ~M[10.00]USD)
+    test "apply_payment_to_order/3 does not apply a payment to a non-existing order" do
+      assert {:error, :not_found} = Payments.apply_payment_to_order(1, ~M[10.00]USD, UUID.uuid4())
     end
 
-    test "apply_payment_to_order/2 does not apply a payment if the balance is already paid" do
+    test "apply_payment_to_order/3 does not apply a payment if the balance is already paid" do
       order = order_fixture()
       payment_fixture(order.id, order.amount)
 
-      assert {:error, :fully_paid} = Payments.apply_payment_to_order(1, ~M[10.00]USD)
+      assert {:error, :fully_paid} =
+               Payments.apply_payment_to_order(1, ~M[10.00]USD, UUID.uuid4())
+    end
+
+    test "apply_payment_to_order/3 does not reapply payment if client doesn't send new token" do
+      order = order_fixture(%{amount: ~M[50.00]USD})
+      token = UUID.uuid4()
+      Payments.apply_payment_to_order(order.id, ~M[10.00]USD, token)
+      Payments.apply_payment_to_order(order.id, ~M[10.00]USD, token)
+      assert 1 == length(Payments.list_payments_for_order(order.id))
+    end
+
+    test "apply_payment_to_order/3 can be called multiple times (with new tokens)" do
+      order = order_fixture(%{amount: ~M[50.00]USD})
+      Payments.apply_payment_to_order(order.id, ~M[10.00]USD, UUID.uuid4())
+      Payments.apply_payment_to_order(order.id, ~M[10.00]USD, UUID.uuid4())
+      Payments.apply_payment_to_order(order.id, ~M[30.00]USD, UUID.uuid4())
+      assert 3 == length(Payments.list_payments_for_order(order.id))
     end
 
     test "create_order_and_pay/1 creates an order an applies a payment for it" do

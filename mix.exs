@@ -47,7 +47,8 @@ defmodule PeekCodeChallenge.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:plug_cowboy, "~> 2.5"},
-      {:goblin_pay, path: "third_party/goblin_pay"}
+      {:goblin_pay, path: "third_party/goblin_pay"},
+      {:uuid, "~> 1.1"}
     ]
   end
 

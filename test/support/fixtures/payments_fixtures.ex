@@ -10,7 +10,8 @@ defmodule PeekCodeChallenge.PaymentsFixtures do
   Generate a payment.
   """
   def payment_fixture(order_id, amount \\ ~M[10.00]USD) do
-    {:ok, payment} = PeekCodeChallenge.Payments.apply_payment_to_order(order_id, amount)
+    {:ok, payment} =
+      PeekCodeChallenge.Payments.apply_payment_to_order(order_id, amount, UUID.uuid4())
 
     payment
   end

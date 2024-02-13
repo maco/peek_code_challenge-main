@@ -24,6 +24,8 @@ defmodule PeekCodeChallenge.Application do
       GoblinPay.PaymentStore
     ]
 
+    :ets.new(:idempotency_tokens, [:set, :public, :named_table])
+
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: PeekCodeChallenge.Supervisor]

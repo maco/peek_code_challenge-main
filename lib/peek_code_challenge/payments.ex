@@ -46,32 +46,40 @@ defmodule PeekCodeChallenge.Payments do
 
   ## Examples
 
-      iex> apply_payment_to_order(123, Money.new("10.00", :USD))
+      iex> apply_payment_to_order(123, Money.new("10.00", :USD), "123")
       {:ok, %Payment{}}
   """
-  def apply_payment_to_order(order_id, amount) do
-    case Orders.get_order(order_id) do
-      {:ok, order} ->
-        zero = Money.zero(order.amount.currency)
+  def apply_payment_to_order(order_id, amount, token) do
+    case :ets.lookup(:idempotency_tokens, token) do
+      [] ->
+        :ets.insert(:idempotency_tokens, {token, System.os_time()})
 
-        amount_applied =
-          list_payments_for_order(order_id)
-          |> Enum.map(& &1.amount)
-          |> Enum.reduce(zero, &Money.add!/2)
+        case Orders.get_order(order_id) do
+          {:ok, order} ->
+            zero = Money.zero(order.amount.currency)
 
-        if amount_applied >= order.amount do
-          {:error, :fully_paid}
-        else
-          payment =
-            %Payment{}
-            |> Payment.changeset(%{amount: amount, order_id: order.id})
-            |> Repo.insert!()
+            amount_applied =
+              list_payments_for_order(order_id)
+              |> Enum.map(& &1.amount)
+              |> Enum.reduce(zero, &Money.add!/2)
 
-          attempt_payment(payment, 5)
+            if amount_applied >= order.amount do
+              {:error, :fully_paid}
+            else
+              payment =
+                %Payment{}
+                |> Payment.changeset(%{amount: amount, order_id: order.id})
+                |> Repo.insert!()
+
+              attempt_payment(payment, 5)
+            end
+
+          {:error, :not_found} ->
+            {:error, :not_found}
         end
 
-      {:error, :not_found} ->
-        {:error, :not_found}
+      _ ->
+        {:error, :duplicate_request}
     end
   end
 
@@ -113,7 +121,7 @@ defmodule PeekCodeChallenge.Payments do
   def create_order_and_pay(order_attrs) do
     case Orders.create_order(order_attrs) do
       {:ok, order} ->
-        apply_payment_to_order(order.id, order.amount)
+        apply_payment_to_order(order.id, order.amount, UUID.uuid4())
 
         {:ok, order}
 
