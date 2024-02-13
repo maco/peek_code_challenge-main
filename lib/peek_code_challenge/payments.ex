@@ -66,9 +66,20 @@ defmodule PeekCodeChallenge.Payments do
             if amount_applied >= order.amount do
               {:error, :fully_paid}
             else
+              {:ok, remaining} = Money.sub(order.amount, amount_applied)
+
+              adjusted_amount =
+                case Money.compare(amount, remaining) do
+                  :gt ->
+                    remaining
+
+                  _ ->
+                    amount
+                end
+
               payment =
                 %Payment{}
-                |> Payment.changeset(%{amount: amount, order_id: order.id})
+                |> Payment.changeset(%{amount: adjusted_amount, order_id: order.id})
                 |> Repo.insert!()
 
               attempt_payment(payment, 5)

@@ -46,6 +46,23 @@ defmodule PeekCodeChallenge.PaymentsTest do
                Payments.apply_payment_to_order(1, ~M[10.00]USD, UUID.uuid4())
     end
 
+    test "apply_payment_to_order/3 prevents overpayment" do
+      order = order_fixture(%{amount: ~M[50.00]USD})
+      Payments.apply_payment_to_order(order.id, ~M[40.00]USD, UUID.uuid4())
+      Payments.apply_payment_to_order(order.id, ~M[20.00]USD, UUID.uuid4())
+
+      payments = Payments.list_payments_for_order(order.id)
+      zero = Money.zero(order.amount.currency)
+
+      amount_applied =
+        payments
+        |> Enum.map(& &1.amount)
+        |> Enum.reduce(zero, &Money.add!/2)
+
+      assert 2 == length(payments)
+      assert Money.equal?(~M[50.00]USD, amount_applied)
+    end
+
     test "apply_payment_to_order/3 does not reapply payment if client doesn't send new token" do
       order = order_fixture(%{amount: ~M[50.00]USD})
       token = UUID.uuid4()
