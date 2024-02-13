@@ -3,9 +3,11 @@ defmodule PeekCodeChallenge.Orders.Order do
   import Ecto.Changeset
 
   alias PeekCodeChallenge.Orders.Customer
+  alias PeekCodeChallenge.Payments.Payment
 
   schema "orders" do
     belongs_to :customer, Customer
+    has_many :payments, Payment
     field :amount, Money.Ecto.Map.Type
 
     timestamps(type: :utc_datetime_usec)

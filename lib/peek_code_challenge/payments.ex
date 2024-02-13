@@ -75,13 +75,13 @@ defmodule PeekCodeChallenge.Payments do
     end
   end
 
-  defp attempt_payment(_payment, 0), do:
-    {:error, :network_error}
+  defp attempt_payment(_payment, 0), do: {:error, :network_error}
 
   defp attempt_payment(payment, retries) do
     case attempt_payment(payment) do
       {:ok, payment} ->
         {:ok, payment}
+
       {:error, :network_error} ->
         attempt_payment(payment, retries - 1)
     end

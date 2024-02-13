@@ -90,6 +90,7 @@ defmodule PeekCodeChallenge.Orders do
   end
 
   alias PeekCodeChallenge.Orders.Order
+  alias PeekCodeChallenge.Payments.Payment
 
   @doc """
   Returns the list of orders.
@@ -133,7 +134,12 @@ defmodule PeekCodeChallenge.Orders do
       iex> get_order(456)
       {:error, :not_found}
   """
-  def get_order(id), do: Repo.fetch(Order, id)
+  def get_order(id) do
+    Order
+    |> join(:left, [o], p in Payment, on: o.id == p.order_id)
+    |> preload([o, p], payments: p)
+    |> Repo.fetch(id)
+  end
 
   @doc """
   Fetches all orders for the given customer using their email address.

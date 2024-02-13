@@ -58,6 +58,7 @@ defmodule PeekCodeChallenge.OrdersTest do
     alias PeekCodeChallenge.Orders.Order
 
     import PeekCodeChallenge.OrdersFixtures
+    import PeekCodeChallenge.PaymentsFixtures
 
     @invalid_attrs %{amount: nil, customer_id: nil}
 
@@ -73,11 +74,19 @@ defmodule PeekCodeChallenge.OrdersTest do
 
     test "get_order/1 returns the order with given id" do
       order = order_fixture()
-      assert Orders.get_order(order.id) == {:ok, order}
+      assert Orders.get_order(order.id) == {:ok, %{order | payments: []}}
     end
 
     test "get_order/1 returns not_found error when the order does not exist" do
       assert Orders.get_order(1) == {:error, :not_found}
+    end
+
+    test "get_order/1 includes payment details" do
+      order = order_fixture(%{amount: ~M[49.99]USD})
+      payment_fixture(order.id, ~M[10.00]USD)
+      payment_fixture(order.id, ~M[15.00]USD)
+      {:ok, %Order{payments: payments}} = Orders.get_order(order.id)
+      assert length(payments) == 2
     end
 
     test "create_order/1 with valid data creates a order" do
